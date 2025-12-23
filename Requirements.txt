@@ -1,1 +1,15 @@
 
+---
+
+## 🛠 Tech Stack
+
+- Python
+- FastAPI
+- LangChain
+- FAISS
+- Gemini LLM (Google Generative AI)
+- PyMuPDF
+- python-pptx
+- Uvicorn
+
+-
