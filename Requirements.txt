@@ -1,15 +1,9 @@
-
----
-
-## 🛠 Tech Stack
-
-- Python
-- FastAPI
-- LangChain
-- FAISS
-- Gemini LLM (Google Generative AI)
-- PyMuPDF
-- python-pptx
-- Uvicorn
-
--
+fastapi
+uvicorn
+python-multipart
+pymupdf
+python-pptx
+requests
+beautifulsoup4
+matplotlib
+graphviz
