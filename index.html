@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>AI PPT Generator – Professor Review</title>
+
+<style>
+body {
+    font-family: Inter, Arial, sans-serif;
+    background: #f4f6fb;
+    padding: 40px;
+}
+.container {
+    max-width: 900px;
+    margin: auto;
+}
+h1 {
+    margin-bottom: 5px;
+}
+.subtitle {
+    color: #666;
+    margin-bottom: 30px;
+}
+
+.card {
+    background: #fff;
+    padding: 20px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+}
+
+.card h3 {
+    margin-top: 0;
+}
+
+textarea {
+    width: 100%;
+    min-height: 100px;
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+    font-size: 14px;
+}
+
+input, select {
+    width: 100%;
+    padding: 8px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+}
+
+.inline {
+    display: flex;
+    gap: 20px;
+}
+
+button {
+    width: 100%;
+    padding: 15px;
+    font-size: 16px;
+    background: #4f46e5;
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    margin-top: 10px;
+}
+
+button.secondary {
+    background: #16a34a;
+}
+
+button:hover {
+    opacity: 0.9;
+}
+
+.status {
+    margin-top: 15px;
+    font-weight: 500;
+    color: #444;
+}
+
+.hidden {
+    display: none;
+}
+
+.slide-box {
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    padding: 15px;
+    margin-bottom: 15px;
+}
+
+.slide-box h4 {
+    margin: 0 0 10px 0;
+}
+
+.review-actions {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 8px;
+}
+
+.badge {
+    background: #e0e7ff;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+}
+
+.download {
+    margin-top: 20px;
+    font-size: 18px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+<h1>📊 AI Presentation Generator</h1>
+<p class="subtitle">Multi-source → AI slides → Professor review → PPT</p>
+
+<!-- INPUT SOURCES -->
+<div class="card">
+    <h3>📁 Upload Files</h3>
+    <input type="file" id="files" multiple accept=".pdf,.doc,.docx,.txt">
+</div>
+
+<div class="card">
+    <h3>🌐 Website URLs</h3>
+    <textarea id="urls" placeholder="One URL per line"></textarea>
+</div>
+
+<div class="card">
+    <h3>💬 Instructions (ChatGPT Style)</h3>
+    <textarea id="prompt" placeholder="Explain the topic, difficulty level, examples, diagrams, etc."></textarea>
+</div>
+
+<div class="card">
+  <h3>🎨 Upload PPT Template (optional)</h3>
+  <input type="file" id="templateFile" accept=".pptx">
+  <p style="font-size:12px;color:#666">Upload a .pptx template to control final slide layout.</p>
+</div>
+
+<div class="card inline">
+    <div>
+        <label>Number of Slides</label>
+        <input type="number" id="slides" min="5" max="50" value="10">
+    </div>
+    <div>
+        <label>Presentation Style</label>
+        <select id="style">
+            <option>Academic</option>
+            <option>Teaching</option>
+            <option>Corporate</option>
+            <option>Minimal</option>
+        </select>
+    </div>
+</div>
+
+<button onclick="generateOutline()">🚀 Generate Slide Outline</button>
+<div id="status" class="status"></div>
+
+<!-- OUTLINE PREVIEW -->
+<div id="outlineSection" class="card hidden">
+    <h3>📑 Slide Outline Preview (Editable)</h3>
+    <div id="outlineList"></div>
+    <button class="secondary" onclick="approveOutline()">✅ Approve Outline</button>
+</div>
+
+<!-- SLIDE CONTENT REVIEW -->
+<div id="reviewSection" class="card hidden">
+    <h3>🧑‍🏫 Professor Slide Review</h3>
+    <div id="slidesPreview"></div>
+    <button onclick="finalizePPT()">🎓 Generate Final PPT</button>
+</div>
+
+<!-- FINAL DOWNLOAD -->
+<div id="result" class="download hidden">
+    ✅ <a href="#" id="downloadLink">Download Generated PPT</a>
+</div>
+
+</div>
+
+<script>
+let outlineData = [];
+let slideData = [];
+
+// ---------------- OUTLINE ----------------
+async function generateOutline() {
+    const status = document.getElementById("status");
+    status.innerText = "🧠 Generating slide outline...";
+
+    const formData = new FormData();
+
+    const fileInput = document.getElementById("files");
+    if (fileInput.files.length > 0) {
+        formData.append("pdf", fileInput.files[0]);
+    }
+
+    formData.append("urls", document.getElementById("urls").value);
+    formData.append("professor_id", "demo_prof");
+    formData.append("num_slides", document.getElementById("slides").value);
+
+    const res = await fetch("http://localhost:8000/api/generate-outline/", {
+        method: "POST",
+        body: formData
+    });
+
+    if (!res.ok) {
+        status.innerText = "❌ Failed to generate outline";
+        return;
+    }
+
+    const data = await res.json();
+    outlineData = data.outline;
+
+    renderOutline();
+    status.innerText = "✅ Outline generated";
+}
+
+
+
+function renderOutline() {
+    const container = document.getElementById("outlineList");
+    container.innerHTML = "";
+
+    outlineData.forEach((s, i) => {
+        container.innerHTML += `
+        <div class="slide-box">
+            <h4>Slide ${i + 1}</h4>
+            <input value="${s.title}"
+              onchange="outlineData[${i}].title=this.value">
+            <textarea rows="4"
+              onchange="outlineData[${i}].points=this.value.split('\\n')">
+${s.points.join("\n")}
+            </textarea>
+        </div>`;
+    });
+
+    document.getElementById("outlineSection").classList.remove("hidden");
+}
+
+// ---------------- SLIDES ----------------
+async function approveOutline() {
+    document.getElementById("status").innerText =
+        "🧠 Generating slide content...";
+
+    const res = await fetch("http://localhost:8000/api/generate-slides/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ outline: outlineData })
+    });
+
+    const data = await res.json();
+    slideData = data.slides;
+
+    renderSlides();
+}
+
+function renderSlides() {
+    const container = document.getElementById("slidesPreview");
+    container.innerHTML = "";
+
+    slideData.forEach((s, i) => {
+        container.innerHTML += `
+        <div class="slide-box">
+            <h4>Slide ${i + 1}: ${s.title}</h4>
+            <textarea rows="6"
+              onchange="slideData[${i}].content=this.value">
+${s.content}
+            </textarea>
+            <label>
+              <input type="checkbox" checked
+                onchange="slideData[${i}].approved=this.checked">
+              Approved
+            </label>
+        </div>`;
+    });
+
+    document.getElementById("reviewSection").classList.remove("hidden");
+    document.getElementById("status").innerText =
+        "🧑‍🏫 Review slides, then generate PPT";
+}
+
+// ---------------- FINAL PPT ----------------
+async function finalizePPT() {
+    document.getElementById("status").innerText =
+        "📦 Rendering PPT...";
+
+    const approvedSlides = slideData.filter(s => s.approved !== false);
+
+    const formData = new FormData();
+    formData.append("slides", JSON.stringify(approvedSlides));
+    formData.append("professor_id", "demo_prof");
+
+    // attach template if provided
+    const templateInput = document.getElementById("templateFile");
+    if (templateInput && templateInput.files && templateInput.files.length > 0) {
+        // If you want to allow multiple templates, loop here and append
+        for (let i = 0; i < templateInput.files.length; i++) {
+            const f = templateInput.files[i];
+            // optional client-side validation
+            if (!f.name.toLowerCase().endsWith(".pptx")) continue;
+            formData.append("templates", f); // name must match FastAPI param
+        }
+    }
+
+    const res = await fetch("http://localhost:8000/api/render-ppt/", {
+        method: "POST",
+        body: formData
+    });
+
+    if (!res.ok) {
+        document.getElementById("status").innerText =
+            "❌ Failed to generate PPT";
+        return;
+    }
+
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
+
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "lecture.pptx";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+
+    document.getElementById("status").innerText =
+        "✅ PPT downloaded successfully!";
+}
+
+</script>
+
+
+
+</body>
+</html>
